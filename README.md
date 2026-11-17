@@ -1,30 +1,32 @@
-# tiny-chess-01 starter
+# tiny-chess-01 entry
 
-A working entry to fork: `main.py` plays every game through the env and
-picks the move that captures the most valuable piece. It is a template,
-not a contender. Replace its one-line choice with a real search.
+A chess engine in 4,091 bytes of Python (`main.py`). The file is an
+lzma + base85 packed payload with a one-line unpacker; the unpacked
+engine is original code written for this competition.
 
-## The size rule
+## The engine
 
-- `main.py` is the whole engine: at most 4,096 bytes as committed,
-  Python 3.13, standard library only. It reads, imports or execs no other
-  file in the repository.
-- Every byte counts: comments, whitespace, docstrings.
-- Compression is allowed and counted. A `main.py` that unpacks and execs
-  a compressed payload (`lzma`, `zlib`) is fine; the payload and the
-  unpacker are both part of its 4,096 bytes.
-- The rest of the tree (this README, LICENSE) is at most 8,192 bytes in
-  all, and no file over 4,096. MIT, BSD, ISC and 0BSD licences fit.
-- Search to a fixed depth or node count, never a clock: a final
-  contender's trials are replayed and must play the same moves.
+- 0x88 board, fully legal move generation (perft-verified), make/unmake
+  with incremental Zobrist hashing.
+- Negamax alpha-beta with iterative deepening under a fixed budget of
+  70,000 nodes per move (no clock anywhere: the same position always
+  gets the same move, so replays match move for move).
+- Transposition table, quiescence search (captures, promotions and
+  check evasions), null-move pruning, late-move reductions, PVS.
+- Evaluation: material plus piece-square tables with a separate
+  endgame king table; repetition and the fifty-move rule score as
+  draws inside the search.
+- It plays the whole gauntlet through the env at `MAKEFUN_ENV_URL`
+  (POST /game, /move), exactly as the starter did.
 
-## Grade it locally
+## Local practice results
 
-You need Docker and the `makefun` CLI. Download the competition's dev
-kit, unpack it, and from inside it run:
+Graded with the kit's own env and scorer on the 3 practice instances
+(6 games each, against depth-2 .. nodes-500k):
 
-    makefun grade-local --kit . --bot <your repository> --driver docker
+- starter (greedy capture): Elo 0 on all three.
+- this engine: practice Elo around 1,280-1,365 per instance
+  (final packed build, trial-0: 1,279, 3W-0D-3L).
 
-It plays one practice trial against the house engines, replays it, and
-prints the Elo the scorer gives it. Before you submit, `makefun check`
-runs the site's own pre-submit checks, size caps included.
+The finals floor is 1,154; the house baseline (sunfish 4K) averages
+about 1,365 on the same practice set.
